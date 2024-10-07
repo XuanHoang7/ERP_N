@@ -1,0 +1,510 @@
+
+PdfLibs.cs
+////////////////////
+using iTextSharp.text.pdf;
+using iTextSharp.text;
+using Font = iTextSharp.text.Font;
+using System.IO;
+using System;
+
+namespace NETCORE3
+{
+    public class PdfLibs
+    {
+        public static PdfPTable CreateTable(int column)
+        {
+            PdfPTable Table = new PdfPTable(column);
+            Table.WidthPercentage = 100;
+            float width = 100f / column;
+            float[] columnWidth = new float[column];
+            for (int i = 0; i < column; i++)
+            {
+                columnWidth[i] = width;
+            }
+
+            Table.SetWidths(columnWidth);
+            return Table;
+        }
+        public static PdfPCell CreateCell(string _content, string _BIU, float _fontSize, bool _border, string _candoc, string _canngang, int _colspan) // BIU: "B", "BI", "IU", "bui", "ub", ...
+        {
+            string fontPath = Path.Combine(Directory.GetCurrentDirectory(), "Uploads/Font/times-new-roman-14.ttf");
+            BaseFont titleFont = BaseFont.CreateFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            int type = 0;
+            if (_BIU.IndexOf('B', StringComparison.OrdinalIgnoreCase) >= 0) type += 1;
+            if (_BIU.IndexOf('I', StringComparison.OrdinalIgnoreCase) >= 0) type += 2;
+            if (_BIU.IndexOf('U', StringComparison.OrdinalIgnoreCase) >= 0) type += 4;
+            PdfPCell Cell = new PdfPCell(new Phrase(_content, new Font(titleFont, _fontSize, type, BaseColor.BLACK)));
+            if (!_border) Cell.Border = PdfPCell.NO_BORDER;
+            switch (_canngang)
+            {
+                case "L":
+                    Cell.HorizontalAlignment = Element.ALIGN_LEFT;
+                    break;
+                case "R":
+                    Cell.HorizontalAlignment = Element.ALIGN_RIGHT;
+                    break;
+                default:
+                    Cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    break;
+            }
+            switch (_candoc)
+            {
+                case "T":
+                    Cell.VerticalAlignment = Element.ALIGN_TOP;
+                    break;
+                case "B":
+                    Cell.VerticalAlignment = Element.ALIGN_BOTTOM;
+                    break;
+                default:
+                    Cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                    break;
+            }
+            Cell.Colspan = _colspan;
+            return Cell;
+        }
+        public static PdfPCell CreateCell(string[] _content, string[] _BIU, float _fontSize, bool _border, string _candoc, string _canngang, int _colspan)
+        {
+            string fontPath = Path.Combine(Directory.GetCurrentDirectory(), "Uploads/Font/times-new-roman-14.ttf");
+            BaseFont titleFont = BaseFont.CreateFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            Phrase phrase = new Phrase();
+            for (int i = 0; i < _content.Length; ++i)
+            {
+                int type = 0;
+                if (_BIU[i].IndexOf('B', StringComparison.OrdinalIgnoreCase) >= 0) type += 1;
+                if (_BIU[i].IndexOf('I', StringComparison.OrdinalIgnoreCase) >= 0) type += 2;
+                if (_BIU[i].IndexOf('U', StringComparison.OrdinalIgnoreCase) >= 0) type += 4;
+                phrase.Add(new Chunk(_content[i], new Font(titleFont, _fontSize, type, BaseColor.BLACK)));
+            }
+            PdfPCell Cell = new PdfPCell(phrase);
+            if (!_border) Cell.Border = PdfPCell.NO_BORDER;
+            switch (_canngang)
+            {
+                case "L":
+                    Cell.HorizontalAlignment = Element.ALIGN_LEFT;
+                    break;
+                case "R":
+                    Cell.HorizontalAlignment = Element.ALIGN_RIGHT;
+                    break;
+                default:
+                    Cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    break;
+            }
+            switch (_candoc)
+            {
+                case "T":
+                    Cell.VerticalAlignment = Element.ALIGN_TOP;
+                    break;
+                case "B":
+                    Cell.VerticalAlignment = Element.ALIGN_BOTTOM;
+                    break;
+                default:
+                    Cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                    break;
+            }
+            Cell.Colspan = _colspan;
+            return Cell;
+        }
+        public static PdfPCell CreateImageCell(string path, float _width, float _height, bool _border, int _colspan)
+        {
+            string PathImage = Path.Combine(Directory.GetCurrentDirectory(), path);
+            var img = Image.GetInstance(PathImage);
+            img.ScaleAbsolute(_width, _height);
+            PdfPCell imgCell = new PdfPCell(img);
+            imgCell.HorizontalAlignment = Element.ALIGN_CENTER;
+            imgCell.VerticalAlignment = Element.ALIGN_MIDDLE;
+            imgCell.Colspan = _colspan;
+            if (!_border) 
+            {
+                imgCell.Border = PdfPCell.NO_BORDER;
+            }
+            return imgCell;
+        }
+    }
+}
+
+
+
+
+
+
+
+/////////////////////
+using static NETCORE3.PdfLibs;
+public class ClassPhieuDeNghi
+        {
+            public string NguoiSuDung { get; set; }
+            public string MaNhanVien { get; set; }
+            public string SDT { get; set; }
+            public string ChucVu { get; set; }
+            public string Phong { get; set; }
+            public string NgayNhanViec { get; set; }
+            public string DonViHuongLuong { get; set; }
+            public string LanCapThu { get; set; }
+            public string NgayCapGanNhat { get; set; }
+            public string MucDichSuDung { get; set; }
+            public int TrangBi { get; set; } // 1:Máy vi tính để bàn, 2: Máy vi tính xách tay,3: Thiết bị khác
+            public string TenThietBiKhac { get; set; }
+        }
+        [HttpPost("export-pdf-de-nghi-cap-may-tinh")]
+        public ActionResult ExportPdfDeNghiCapMayTinh(ClassPhieuDeNghi data)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                var query = userManager.Users.Where(x => x.Id == Guid.Parse(User.Identity.Name))
+                   .Include(u => u.DonVi)
+                   .Include(u => u.ChucVu)
+                   .Include(u => u.Phongban).SingleOrDefault();
+
+                Document document = new Document(PageSize.A4, 30, 30, 20, 20);
+                PdfWriter writer = PdfWriter.GetInstance(document, ms);
+                document.Open();
+
+                PdfPCell imgCheckCell = CreateImageCell("Uploads/Image/check.jpg", 14f, 14f, false, 6);
+                PdfPCell imgUncheckCell = CreateImageCell("Uploads/Image/uncheck.jpg", 14f, 14f, false, 6);
+                PdfPCell imageCell = CreateImageCell("Uploads/Image/logo.png", 118f, 40f, true, 3);
+                imageCell.Padding = 3f;
+
+                PdfPTable Table = CreateTable(10);
+                Table.AddCell(imageCell);
+                PdfPCell cell = CreateCell("PHIẾU ĐỀ NGHỊ CẤP MÁY VI TÍNH", "b", 16f, true, "C", "C", 7);
+                Table.AddCell(cell);
+                PdfPTable Table1 = CreateTable(100);
+                cell = CreateCell("I. NGƯỜI ĐỀ NGHỊ", "b", 12f, false, "T", "L", 100);
+                Table1.AddCell(cell);
+                cell = CreateCell(new string[] { "Họ và tên: ", query.FullName }, new string[] { "b", "" }, 12f, false, "T", "L", 50);
+                Table1.AddCell(cell);
+                cell = CreateCell(new string[] { "SĐT: ", query.PhoneNumber }, new string[] { "b", "" }, 12f, false, "T", "L", 50);
+                Table1.AddCell(cell);
+                cell = CreateCell(new string[] { "Chức vụ: ", query.ChucVu.TenChucVu }, new string[] { "b", "" }, 12f, false, "T", "L", 50);
+                Table1.AddCell(cell);
+                cell = CreateCell(new string[] { "Ban/Phòng: ", query.Phongban.TenPhongBan }, new string[] { "b", "" }, 12f, false, "T", "L", 50);
+                Table1.AddCell(cell);
+                cell = CreateCell(new string[] { "Đơn vị: ", query.DonVi.TenDonVi }, new string[] { "b", "" }, 12f, false, "T", "L", 100);
+                Table1.AddCell(cell);
+                cell = CreateCell(new string[] { "Ngày đề nghị: ", "ngày " + DateTime.Now.ToString("dd") + " tháng " + DateTime.Now.ToString("MM") + " năm " + DateTime.Now.ToString("yyyy") }, new string[] { "b", "" }, 12f, false, "T", "L", 100);
+                Table1.AddCell(cell);
+                cell = CreateCell("Nội dung:", "b" ,12f, false, "T", "L", 100);
+                Table1.AddCell(cell);
+                cell = CreateCell("", "", 12f, false, "T", "L", 3);
+                Table1.AddCell(cell);
+                cell = CreateCell("-    Trang bị:", "", 12f, false, "T", "L", 15);
+                Table1.AddCell(cell);
+                cell = CreateCell("", "", 12f, false, "T", "L", 2);
+                Table1.AddCell(cell);
+                Table1.AddCell(data.TrangBi == 1 ? imgCheckCell : imgUncheckCell);
+                cell = CreateCell("Máy vi tính để bàn", "", 12f, false, "T", "L", 24);
+                Table1.AddCell(cell);
+                Table1.AddCell(data.TrangBi == 2 ? imgCheckCell : imgUncheckCell);
+                cell = CreateCell("Máy vi tính xách tay", "", 12f, false, "T", "L", 44);
+                Table1.AddCell(cell);
+                cell = CreateCell("", "", 12f, false, "T", "L", 20);
+                Table1.AddCell(cell);
+                Table1.AddCell(data.TrangBi == 3 ? imgCheckCell : imgUncheckCell);
+                cell = data.TrangBi == 3 ? CreateCell("Thiết bị khác: " + data.TenThietBiKhac, "", 12f, false, "T", "L", 74) : CreateCell("Thiết bị khác", "", 12f, false, "T", "L", 74);
+                Table1.AddCell(cell);
+                cell = CreateCell("", "", 12f, false, "T", "L", 3);
+                Table1.AddCell(cell);
+                cell = CreateCell("-    Người sử dụng: " + data.NguoiSuDung, "", 12f, false, "T", "L", 47);
+                Table1.AddCell(cell);
+                cell = CreateCell("MSNV: " + data.MaNhanVien, "", 12f, false, "T", "L", 25);
+                Table1.AddCell(cell);
+                cell = CreateCell("SĐT: " + data.SDT, "", 12f, false, "T", "L", 25);
+                Table1.AddCell(cell);
+                cell = CreateCell("", "", 12f, false, "T", "L", 3);
+                Table1.AddCell(cell);
+                cell = CreateCell("-    Chức vụ: " + data.ChucVu, "", 12f, false, "T", "L", 47);
+                Table1.AddCell(cell);
+                cell = CreateCell("Ban/Phòng: " + data.Phong, "", 12f, false, "T", "L", 50);
+                Table1.AddCell(cell);
+                cell = CreateCell("", "", 12f, false, "T", "L", 3);
+                Table1.AddCell(cell);
+                cell = CreateCell("-    Ngày nhận việc: " + data.NgayNhanViec, "", 12f, false, "T", "L", 47);
+                Table1.AddCell(cell);
+                cell = CreateCell("Đơn vị hưởng lương: ", "", 12f, false, "T", "L", 21);
+                Table1.AddCell(cell);
+                cell = CreateCell(data.DonViHuongLuong, "", 12f, false, "T", "L", 29);
+                Table1.AddCell(cell);
+                cell = CreateCell("", "", 12f, false, "T", "L", 3);
+                Table1.AddCell(cell);
+                cell = CreateCell("-    Lần cấp thứ: " + data.LanCapThu, "", 12f, false, "T", "L", 47);
+                Table1.AddCell(cell);
+                if (data.NgayCapGanNhat == "" || data.NgayCapGanNhat == null)
+                {
+                    cell = CreateCell("Lần cấp gần nhất (nếu có): Không có.", "", 12f, false, "T", "L", 50);
+                    Table1.AddCell(cell);
+                }
+                else
+                {
+                    DateTime date;
+                    if (!DateTime.TryParseExact(data.NgayCapGanNhat, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+                    {
+                        return StatusCode(StatusCodes.Status409Conflict, "Ngày cấp gần nhất không đúng định dạng!");
+                    }
+                    cell = CreateCell("Lần cấp gần nhất (nếu có) ngày " + date.ToString("dd") + " tháng " + date.ToString("MM") + " năm " + date.ToString("yyyy"), "", 12f, false, "T", "L", 50);
+                    Table1.AddCell(cell);
+                }
+                cell = CreateCell("", "", 12f, false, "T", "L", 3);
+                Table1.AddCell(cell);
+                cell = CreateCell("-    Mục đích sử dụng: ", "", 12f, false, "T", "L", 21);
+                cell.PaddingBottom = 6f;
+                Table1.AddCell(cell);
+                cell = CreateCell(data.MucDichSuDung, "", 12f, false, "T", "L", 76);
+                cell.PaddingBottom = 6f;
+                Table1.AddCell(cell);
+                PdfPCell TableCell1 = new PdfPCell(Table1);
+                TableCell1.Colspan = 10;
+                TableCell1.Padding = 5f;
+                Table.AddCell(TableCell1);
+                cell = CreateCell("Lãnh đạo Ban/Phòng\n\n\n\n\n\n\n", "b", 12f, true, "C", "C", 5);
+                Table.AddCell(cell);
+                cell = CreateCell("Người đề nghị\n\n\n\n\n\n\n", "b", 12f, true, "C", "C", 5);
+                Table.AddCell(cell);
+                cell = CreateCell("II. PHẦN DÀNH CHO KIỂM TRA VÀ PHÊ DUYỆT", "b", 12f, true, "C", "L", 10);
+                cell.PaddingBottom = 5f;
+                Table.AddCell(cell);
+                cell = CreateCell("1. HÀNH CHÍNH", "b", 12f, true, "C", "L", 10);
+                cell.PaddingBottom = 5f;
+                Table.AddCell(cell);
+                PdfPTable Table2 = new PdfPTable(30);
+                Table2.WidthPercentage = 100;
+                float[] columnWidth30 = { 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f };
+                Table2.SetWidths(columnWidth30);
+                cell = CreateCell("Nhóm Máy vi tính để bàn:", "", 12f, false, "C", "L", 100);
+                Table2.AddCell(cell);
+                Table2.AddCell(imgUncheckCell);
+                cell = CreateCell("Máy nhóm 1 ", "", 12f, false, "T", "L", 94);
+                Table2.AddCell(cell);
+                Table2.AddCell(imgUncheckCell);
+                cell = CreateCell("Máy nhóm 2 ", "", 12f, false, "T", "L", 94);
+                Table2.AddCell(cell);
+                Table2.AddCell(imgUncheckCell);
+                cell = CreateCell("Máy nhóm 3 ", "", 12f, false, "T", "L", 94);
+                Table2.AddCell(cell);
+                Table2.AddCell(imgUncheckCell);
+                cell = CreateCell("Máy nhóm 4 ", "", 12f, false, "T", "L", 94);
+                Table2.AddCell(cell);
+                PdfPCell TableCell2 = new PdfPCell(Table2);
+                TableCell2.Border = Rectangle.TOP_BORDER | Rectangle.LEFT_BORDER | Rectangle.RIGHT_BORDER;
+                TableCell2.Colspan = 3;
+                Table.AddCell(TableCell2);
+                PdfPTable Table3 = new PdfPTable(30);
+                Table3.WidthPercentage = 100;
+                Table3.SetWidths(columnWidth30);
+                cell = CreateCell("Nhóm máy vi tính xách tay:", "", 12f, false, "C", "L", 100);
+                Table3.AddCell(cell);
+                Table3.AddCell(imgUncheckCell);
+                cell = CreateCell("Máy nhóm 1 ", "", 12f, false, "T", "L", 94);
+                Table3.AddCell(cell);
+                Table3.AddCell(imgUncheckCell);
+                cell = CreateCell("Máy nhóm 2 ", "", 12f, false, "T", "L", 94) ;
+                Table3.AddCell(cell);
+                Table3.AddCell(imgUncheckCell);
+                cell = CreateCell("Máy nhóm 3 ", "", 12f, false, "T", "L", 94);
+                Table3.AddCell(cell);
+                Table3.AddCell(imgUncheckCell);
+                cell = CreateCell("Máy nhóm 4 ", "", 12f, false, "T", "L", 94);
+                Table3.AddCell(cell);
+                PdfPCell TableCell3 = new PdfPCell(Table3);
+                TableCell3.Border = Rectangle.TOP_BORDER | Rectangle.LEFT_BORDER | Rectangle.RIGHT_BORDER;
+                TableCell3.Colspan = 3;
+                Table.AddCell(TableCell3);
+                cell = CreateCell("Xác nhận và ký tên", "b", 12f, false, "T", "L", 4);
+                cell.Border = Rectangle.TOP_BORDER | Rectangle.LEFT_BORDER | Rectangle.RIGHT_BORDER;
+                Table.AddCell(cell);
+                PdfPTable Table4 = CreateTable(100);
+                cell = CreateCell("Ghi chú (dành cho CV CNTT):", "biu", 12f, false, "T", "L", 30);
+                cell.PaddingBottom = 7f;
+                Table4.AddCell(cell);
+                cell = CreateCell("...........................................................................................................................", "", 12f, false, "T", "R", 70);
+                cell.PaddingBottom = 7f;
+                Table4.AddCell(cell);
+                cell = CreateCell(".................................................................................................................................................................................", "", 12f, false, "T", "L", 100);
+                cell.PaddingBottom = 7f;
+                Table4.AddCell(cell);
+                PdfPCell TableCell4 = new PdfPCell(Table4);
+                TableCell4.Border = Rectangle.BOTTOM_BORDER | Rectangle.LEFT_BORDER | Rectangle.RIGHT_BORDER;
+                TableCell4.Colspan = 10;
+                Table.AddCell(TableCell4);
+                cell = CreateCell("2. CNTT", "b", 12f, true, "C", "L", 5);
+                cell.PaddingBottom = 5f;
+                Table.AddCell(cell);
+                cell = CreateCell("3. KẾ TOÁN", "b", 12f, true, "C", "L", 5);
+                cell.PaddingBottom = 5f;
+                Table.AddCell(cell);
+                cell = CreateCell("Xác nhận và ký tên\n\n\n\n\n\n\n", "b", 12f, true, "C", "L", 5);
+                Table.AddCell(cell);
+                cell = CreateCell("Xác nhận và ký tên\n\n\n\n\n\n\n", "b", 12f, true, "C", "L", 5);
+                Table.AddCell(cell);
+                cell = CreateCell("4. BAN LÃNH ĐẠO PHÊ DUYỆT", "b", 12f, true, "C", "L", 10);
+                cell.PaddingBottom = 5f;
+                Table.AddCell(cell);
+                cell = CreateCell("\n\n\n\n\n\n\n", "b", 12f, true, "C", "L", 10);
+                Table.AddCell(cell);
+                document.Add(Table);
+                document.Close();
+                writer.Close();
+                return Ok(new { datapdf = ms.ToArray() });
+            }
+        }  
+        public class ClassPhieuDeNghiThietBi
+        {
+            public string MucDichSuDung { get; set; }
+            public string ChiTietYeuCau { get; set; }
+            public string DanhGia { get; set; }
+            public string DiaDiem { get; set; }
+            public string MaPhieuHoTro { get; set; }
+            public List<ClassDeXuatThietBiCNTT>lst_ThietBi { get; set; }
+        }
+        public class ClassDeXuatThietBiCNTT
+        {
+            public string TenThietBi { get; set; }
+            public string DonViTinh { get; set; }
+            public int SoLuong { get; set; }
+            public string GhiChu { get; set; }
+        }
+        [HttpPost("export-pdf-de-nghi-cap-thiet-bi")]
+        public ActionResult ExportPdfDeNghiCapThietBi(ClassPhieuDeNghiThietBi data)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                var query = userManager.Users.Where(x => x.Id == Guid.Parse(User.Identity.Name))
+                   .Include(u => u.DonVi)
+                   .Include(u => u.ChucVu)
+                   .Include(u => u.Phongban).SingleOrDefault();
+                Document document = new Document(PageSize.A4, 40, 40, 30, 30);
+                PdfWriter writer = PdfWriter.GetInstance(document, ms);
+                document.Open();
+                PdfPTable Table = CreateTable(100);
+                PdfPCell imageCell = CreateImageCell("Uploads/Image/logo.png", 118f, 40f, true, 30);
+                Table.AddCell(imageCell);
+                PdfPCell cell = new PdfPCell();
+                Table.AddCell(CreateCell("PHIẾU ĐỀ NGHỊ CUNG CẤP THIẾT BỊ\nCÔNG NGHỆ THÔNG TIN", "b", 15f, true, "C", "C", 70));
+                cell = CreateCell(new string[] { "Người đề nghị: ", query.FullName }, new string[] { "b", "" }, 13f, false, "T", "L", 40);
+                cell.PaddingBottom = 5f;
+                cell.PaddingTop = 20f;
+                Table.AddCell(cell);
+                cell = CreateCell(new string[] { "MSNV: ", query.MaNhanVien }, new string[] { "b", "" }, 13f, false, "T", "L", 30);
+                cell.PaddingBottom = 5f;
+                cell.PaddingTop = 20f;
+                Table.AddCell(cell);
+                cell = CreateCell(new string[] { "ĐT: ", query.PhoneNumber }, new string[] { "b", "" }, 13f, false, "T", "L", 30);
+                cell.PaddingBottom = 5f;
+                cell.PaddingTop = 20f;
+                Table.AddCell(cell);
+                cell = CreateCell(new string[] { "Ban/Phòng: ", query.Phongban.TenPhongBan }, new string[] { "b", "" }, 13f, false, "T", "L", 100);
+                cell.PaddingBottom = 5f;
+                Table.AddCell(cell);
+                cell = CreateCell(new string[] { "Mục đích sử dụng: ", data.MucDichSuDung }, new string[] { "b", "" }, 13f, false, "T", "L", 100);
+                cell.PaddingBottom = 5f;
+                Table.AddCell(cell);
+                if (data.ChiTietYeuCau == null || data.ChiTietYeuCau == "")
+                {
+                    string str = "";
+                    for (int i = 1; i <= 129; ++i) str += ".";
+                    cell = CreateCell(new string[] { "Chi tiết yêu cầu: ", str }, new string[] { "b", "" }, 13f, false, "T", "L", 100);
+                    cell.PaddingBottom = 25f;
+                }
+                else
+                {
+                    cell = CreateCell(new string[] { "Chi tiết yêu cầu: ", data.ChiTietYeuCau }, new string[] { "b", "" }, 13f, false, "T", "L", 100);
+                    cell.PaddingBottom = 25f;
+                }
+                Table.AddCell(cell);
+                cell = CreateCell("STT", "b", 13f, true, "C", "C", 7);
+                cell.PaddingBottom = 5f;
+                Table.AddCell(cell);
+                cell = CreateCell("Nội dung", "b", 13f, true, "C", "C", 40);
+                cell.PaddingBottom = 5f;
+                Table.AddCell(cell);
+                cell = CreateCell("Quy cách", "b", 13f, true, "C", "C", 15);
+                cell.PaddingBottom = 5f;
+                Table.AddCell(cell);
+                cell = CreateCell("Số lượng", "b", 13f, true, "C", "C", 13);
+                cell.PaddingBottom = 5f;
+                Table.AddCell(cell);
+                cell = CreateCell("Ghi chú", "b", 13f, true, "C", "C", 25);
+                cell.PaddingBottom = 5f;
+                Table.AddCell(cell);
+                int STT = 1;
+                foreach (var item in data.lst_ThietBi)
+                {
+                    cell = CreateCell(STT.ToString(), "", 13f, true, "T", "C", 7);
+                    cell.PaddingBottom = 5f;
+                    Table.AddCell(cell);
+                    cell = CreateCell(item.TenThietBi, "", 13f, true, "T", "L", 40);
+                    cell.PaddingBottom = 5f;
+                    Table.AddCell(cell);
+                    cell = CreateCell(item.DonViTinh, "", 13f, true, "T", "C", 15);
+                    cell.PaddingBottom = 5f;
+                    Table.AddCell(cell);
+                    cell = CreateCell(item.SoLuong.ToString(), "", 13f, true, "T", "C", 13);
+                    cell.PaddingBottom = 5f;
+                    Table.AddCell(cell);
+                    cell = CreateCell(item.GhiChu, "", 13f, true, "T", "L", 25);
+                    cell.PaddingBottom = 5f;
+                    Table.AddCell(cell);
+                    STT++;
+                }
+                if (data.DanhGia == "" || data.DanhGia == null)
+                {
+                    string str = ".";
+                    for (int i = 1; i <= 115; ++i) str += ".";
+                    cell = CreateCell(new string[] { "Đánh giá của CV CNTT: ", str }, new string[] { "b", "" }, 13f, false, "T", "L", 100);
+                    cell.PaddingTop = 7f;
+                    Table.AddCell(cell);
+                    str = "";
+                    for (int i = 1; i <= 157; ++i) str += ".";
+                    cell = CreateCell(str, "", 13f, false, "T", "L", 100);
+                    cell.PaddingTop = 7f;
+                    Table.AddCell(cell);
+                    Table.AddCell(cell);
+                    Table.AddCell(cell);
+                }
+                else
+                {
+                    cell = CreateCell(new string[] { "Đánh giá của CV CNTT: ", data.DanhGia }, new string[] { "b", "" }, 13f, false, "T", "L", 100);
+                    cell.PaddingTop = 7f;
+                    Table.AddCell(cell);
+                }
+                if (data.DiaDiem == null || data.DiaDiem == "")
+                {
+                    string str = "";
+                    for (int i = 1; i <= 30; ++i) str += ".";
+                    cell = CreateCell(str + ", ngày " + DateTime.Now.ToString("dd") + " tháng " + DateTime.Now.ToString("MM") + " năm " + DateTime.Now.ToString("yyyy"), "i", 13f, false, "C", "R", 100);
+                    cell.PaddingBottom = 4f;
+                    cell.PaddingTop = 7f;
+                    Table.AddCell(cell);
+                }
+                else
+                {
+                    cell = CreateCell(data.DiaDiem + ", ngày " + DateTime.Now.ToString("dd") + " tháng " + DateTime.Now.ToString("MM") + " năm " + DateTime.Now.ToString("yyyy"), "i", 13f, false, "C", "R", 100);
+                    cell.PaddingBottom = 4f;
+                    cell.PaddingTop = 7f;
+                    Table.AddCell(cell);
+                }
+                
+                cell = CreateCell("Lãnh đạo Ban/Phòng\r\r\r\r\r\r\r\r", "b", 13f, true, "C", "C", 50);
+                cell.PaddingBottom = 7f;
+                Table.AddCell(cell);
+                cell = CreateCell("Người đề nghị\r\r\r\r\r\r\r" + query.FullName, "b", 13f, true, "C", "C", 50);
+                cell.PaddingBottom = 7f;
+                Table.AddCell(cell);
+                cell = CreateCell("P. Kế toán\r\r\r\r\r\r\r\r", "b", 13f, true, "C", "C", 33);
+                Table.AddCell(cell);
+                cell = CreateCell("P. Hành chính\r\r\r\r\r\r\r\r", "b", 13f, true, "C", "C", 34);
+                Table.AddCell(cell);
+                cell = CreateCell("P. CNTT\r\r\r\r\r\r\r\r", "b", 13f, true, "C", "C", 33);
+                Table.AddCell(cell);
+                cell = CreateCell("Ban Lãnh đạo phê duyệt\r\r\r\r\r\r\r\r", "b", 13f, true, "C", "C", 100);
+                Table.AddCell(cell);
+                cell = CreateCell(data.MaPhieuHoTro, "b", 13f, false, "C", "R", 100);
+                cell.PaddingTop = 10f;
+                Table.AddCell(cell);
+                document.Add(Table);
+                document.Close();
+                writer.Close();
+
+                return File(ms.ToArray(), "application/pdf", "Phieudenghi.pdf");
+                //return Ok(new { datapdf = ms.ToArray() });
+            }
+        }

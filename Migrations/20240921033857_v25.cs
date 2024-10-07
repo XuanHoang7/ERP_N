@@ -1,0 +1,66 @@
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace ERP.Migrations
+{
+    /// <inheritdoc />
+    public partial class v25 : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.CreateTable(
+                name: "PIPhuThuoc",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    DanhMucPIChiTietId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    MaSo = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    ChiSoDanhGia = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    ChiTietChiSoDanhGia = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PIPhuThuoc", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PIPhuThuoc_AspNetUsers_CreatedBy",
+                        column: x => x.CreatedBy,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PIPhuThuoc_DanhMucPIChiTiet_DanhMucPIChiTietId",
+                        column: x => x.DanhMucPIChiTietId,
+                        principalTable: "DanhMucPIChiTiet",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PIPhuThuoc_CreatedBy",
+                table: "PIPhuThuoc",
+                column: "CreatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PIPhuThuoc_DanhMucPIChiTietId",
+                table: "PIPhuThuoc",
+                column: "DanhMucPIChiTietId");
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "PIPhuThuoc");
+        }
+    }
+}

@@ -1,0 +1,41 @@
+﻿<table style="width:100px;border-collapse:collapse;font-size:9pt;margin-left: 30px;float:left"
+    cellspacing="0" cellpadding="0">
+    
+    <tr>
+        <td style="font-size: 9pt;font-weight: bold;height: 13px;padding-left: 40px;text-align:center;padding-top: 2px;">{1:dd/MM/yyyy}
+</td>
+    </tr>
+    <tr>
+        <td style="text-align:center;font-weight:bold;padding-top: 2px;padding-left: 40px;">
+            <center>
+                <div class="barcode">
+                    <div id='id_qrcode{3}'></div>
+                </div>
+            </center>
+        </td>
+    </tr>
+    <tr>
+        <td style="font-size: 9pt;font-weight: bold;height: 13px;padding-left: 40px;text-align:center;padding-top: 2px;">{2}   </td>
+    </tr>
+    <tr style="transform: rotate(270deg) translate(71px, -40px);font-weight: bold;width: 100px;height: 0px;text-align: center;">
+        <td><div class="jtextfill" style="font-weight: bold;font-size: 16pt;text-align: center;padding-top: 2px;width:90px">{0}</div></td>
+</tr>
+</table>
+^
+var qrcode$name$ = new QRCode('id_qrcode$name$', {
+text: '$masanpham$',
+width: 60,
+height: 60,
+colorDark: "#000000",
+colorLight: "#ffffff",
+correctLevel: QRCode.CorrectLevel.H
+});
+^
+Sơn <input style="height: 9px;" disabled="disabled" checked type="checkbox" />
+^
+page-break-after: always
+^
+<table style="width:410px;border-collapse:collapse;padding:0;margin:0; font-size:9pt;page-break-after: always"
+    cellspacing="0" cellpadding="0">
+    <tr>
+        <td><div style="height: 100px;overflow: hidden;">{0}</div></td></tr></table>
